@@ -78,11 +78,14 @@ MODEL_OPTIONS: ProviderModeOptions = {
     },
     "qwen": {
         "quick": [
+            ("Qwen3.6 Flash", "qwen3.6-flash-2026-04-16"),
+            ("Qwen3.6 Plus", "qwen3.6-plus-2026-04-02"),
             ("Qwen 3.5 Flash", "qwen3.5-flash"),
             ("Qwen Plus", "qwen-plus"),
             ("Custom model ID", "custom"),
         ],
         "deep": [
+            ("Qwen 3.7 Max", "qwen3.7-max-preview"),
             ("Qwen 3.6 Plus", "qwen3.6-plus"),
             ("Qwen 3.5 Plus", "qwen3.5-plus"),
             ("Qwen 3 Max", "qwen3-max"),
@@ -114,7 +117,6 @@ MODEL_OPTIONS: ProviderModeOptions = {
             ("Custom model ID", "custom"),
         ],
     },
-    # OpenRouter: fetched dynamically. Azure: any deployed model name.
     "ollama": {
         "quick": [
             ("Qwen3:latest (8B, local)", "qwen3:latest"),
