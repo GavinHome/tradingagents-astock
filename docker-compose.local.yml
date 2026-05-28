@@ -1,0 +1,14 @@
+services:
+  tradingagents:
+    build: .
+    container_name: tradingagents-astock
+    env_file:
+      - .env
+    volumes:
+      - ./tradingagents_data:/home/appuser/.tradingagents
+    ports:
+      - "18501:8501"
+    tty: true
+    stdin_open: true
+    entrypoint: ["tradingagents-web"]
+    
