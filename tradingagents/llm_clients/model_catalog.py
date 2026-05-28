@@ -78,8 +78,8 @@ MODEL_OPTIONS: ProviderModeOptions = {
     },
     "qwen": {
         "quick": [
-            ("Qwen3.6 Flash", "qwen3.6-flash-2026-04-16"),
-            ("Qwen3.6 Plus", "qwen3.6-plus-2026-04-02"),
+            ("Qwen 3.6 Plus", "qwen3.6-plus-2026-04-02"),
+            ("Qwen 3.6 Flash", "qwen3.6-flash-2026-04-16"),
             ("Qwen 3.5 Flash", "qwen3.5-flash"),
             ("Qwen Plus", "qwen-plus"),
             ("Custom model ID", "custom"),

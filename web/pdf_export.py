@@ -75,7 +75,20 @@ class _ReportPDF(FPDF):
 
     def _use_font(self, style: str = "", size: int = 10) -> None:
         if self._has_cjk:
-            self.set_font("CJK", style, size)
+            try:
+                self.set_font("CJK", style, size)
+            except Exception:
+                # Font state may have been corrupted, re-add and try again
+                font_path = _find_cjk_font()
+                if font_path:
+                    try:
+                        self.add_font("CJK", "", font_path, uni=True)
+                        self.add_font("CJK", "B", font_path, uni=True)
+                        self.set_font("CJK", style, size)
+                    except:
+                        self.set_font("Helvetica", style, size)
+                else:
+                    self.set_font("Helvetica", style, size)
         else:
             self.set_font("Helvetica", style, size)
 
@@ -136,13 +149,16 @@ class _ReportPDF(FPDF):
         )
 
     def add_section(self, title: str, content: str) -> None:
-        self.add_page()
+        if not self.page:
+            self.add_page()
         self._use_font("B", 16)
         self.set_text_color(255, 90, 31)
         self.cell(0, 10, title)
         self.ln(12)
 
         cleaned = _strip_think(content)
+        # Filter out control characters that can cause rendering issues
+        cleaned = re.sub(r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]', '', cleaned)
         self._render_markdown(cleaned)
 
     def _render_markdown(self, text: str) -> None:
@@ -150,6 +166,10 @@ class _ReportPDF(FPDF):
         lines = text.split("\n")
         i = 0
         while i < len(lines):
+            # Ensure page is open before any rendering
+            if not self.page:
+                self.add_page()
+                
             line = lines[i]
             stripped = line.strip()
 
@@ -203,7 +223,7 @@ class _ReportPDF(FPDF):
                     bullet = f"  {m.group(1)} "
                     body = m.group(2)
                 body = _strip_md_inline(body)
-                self.multi_cell(0, 5.5, bullet + body)
+                self._safe_multi_cell(bullet + body, 5.5)
                 i += 1
                 continue
 
@@ -217,7 +237,15 @@ class _ReportPDF(FPDF):
                 self.set_text_color(60, 60, 60)
                 cells = [c.strip() for c in stripped.strip("|").split("|")]
                 row_text = "    ".join(_strip_md_inline(c) for c in cells)
-                self.multi_cell(0, 5, row_text)
+                # Handle very long text that exceeds page width
+                max_chars_per_line = 100
+                if len(row_text) > max_chars_per_line:
+                    # Split long text into multiple lines
+                    for j in range(0, len(row_text), max_chars_per_line):
+                        chunk = row_text[j:j+max_chars_per_line]
+                        self._safe_multi_cell(chunk)
+                else:
+                    self._safe_multi_cell(row_text)
                 i += 1
                 continue
 
@@ -235,11 +263,40 @@ class _ReportPDF(FPDF):
                 self.set_text_color(40, 40, 40)
                 para = " ".join(para_lines)
                 para = _strip_md_inline(para)
-                self.multi_cell(0, 5.5, para)
+                # Handle very long text that exceeds page width
+                max_chars_per_line = 120
+                if len(para) > max_chars_per_line:
+                    # Split long text into multiple lines
+                    for j in range(0, len(para), max_chars_per_line):
+                        chunk = para[j:j+max_chars_per_line]
+                        self._safe_multi_cell(chunk)
+                else:
+                    self._safe_multi_cell(para)
                 self.ln(2)
                 continue
 
             i += 1
+
+    def _safe_multi_cell(self, text: str, h: float = 5, align: str = "") -> None:
+        """Safely render text with multi_cell, handling edge cases."""
+        if not self.page:
+            self.add_page()
+            
+        # Replace any problematic characters
+        safe_text = text.replace("\x00", "").replace("\u200b", "")
+        
+        try:
+            self.multi_cell(0, h, safe_text, align=align)
+        except Exception as e:
+            # If normal rendering fails, try character by character
+            try:
+                for char in safe_text:
+                    try:
+                        self.multi_cell(0, h, char)
+                    except:
+                        continue
+            except:
+                pass
 
 
 def generate_pdf(final_state: dict[str, Any], ticker: str, trade_date: str, signal: str) -> bytes:
